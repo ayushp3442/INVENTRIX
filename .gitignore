@@ -1,0 +1,39 @@
+# Maven / Spring Boot
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+logs/
+
+# IDE / Editor Files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Database & Temporary Artifacts
+*.db
+*.mv.db
+*.trace.db
+database/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+

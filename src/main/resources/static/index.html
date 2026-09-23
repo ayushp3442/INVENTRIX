@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INVENTRIX // Inventory Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-icon">📦</div>
+      <div class="brand-name">INVENTRIX</div>
+      <span class="brand-badge">Academic Edition</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openCategoriesModal()">🏷️ Categories</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSuppliersModal()">🏭 Suppliers</button>
+      <button class="btn btn-secondary btn-sm" onclick="openTransactionsModal()">📜 Audit Ledger</button>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span>Port 8082 • Online</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- KPI Summary Metrics Cards -->
+    <section class="stats-grid">
+      <div class="stat-card" style="--card-accent: var(--accent-indigo);">
+        <div class="stat-info">
+          <h3>Total Products</h3>
+          <div class="stat-value" id="stat-total-products">-</div>
+          <div class="stat-sub">Active catalog SKUs</div>
+        </div>
+        <div class="stat-icon">🏷️</div>
+      </div>
+
+      <div class="stat-card" style="--card-accent: var(--accent-cyan);">
+        <div class="stat-info">
+          <h3>Total Stock Units</h3>
+          <div class="stat-value" id="stat-total-units">-</div>
+          <div class="stat-sub">Physical goods count</div>
+        </div>
+        <div class="stat-icon">📦</div>
+      </div>
+
+      <div class="stat-card" style="--card-accent: var(--accent-emerald);">
+        <div class="stat-info">
+          <h3>Inventory Valuation</h3>
+          <div class="stat-value" id="stat-total-valuation">-</div>
+          <div class="stat-sub">Estimated retail asset value</div>
+        </div>
+        <div class="stat-icon">💰</div>
+      </div>
+
+      <div class="stat-card" style="--card-accent: var(--accent-amber);">
+        <div class="stat-info">
+          <h3>Low Stock Warnings</h3>
+          <div class="stat-value" id="stat-low-stock">-</div>
+          <div class="stat-sub" id="stat-low-stock-sub">Needs replenishment</div>
+        </div>
+        <div class="stat-icon">⚠️</div>
+      </div>
+    </section>
+
+    <!-- Toolbar: Search, Filters & Quick Actions -->
+    <section class="toolbar">
+      <div class="search-filter-group">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search by SKU or Product Name..." oninput="handleSearch()">
+        </div>
+
+        <select class="select-filter" id="category-filter" onchange="handleFilterChange()">
+          <option value="">All Categories</option>
+        </select>
+
+        <select class="select-filter" id="supplier-filter" onchange="handleFilterChange()">
+          <option value="">All Suppliers</option>
+        </select>
+
+        <button class="btn-filter-toggle" id="btn-low-stock-toggle" onclick="toggleLowStockFilter()">
+          ⚠️ Low Stock Only
+        </button>
+      </div>
+
+      <div class="action-btn-group">
+        <button class="btn btn-success" onclick="openStockInModal()">📥 Stock In</button>
+        <button class="btn btn-danger" onclick="openStockOutModal()">📤 Stock Out</button>
+        <button class="btn btn-secondary" onclick="openAdjustmentModal()">⚖️ Adjust</button>
+        <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+      </div>
+    </section>
+
+    <!-- Inventory Data Table -->
+    <section class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Product Name</th>
+            <th>Category</th>
+            <th>Current Stock</th>
+            <th>Cost Price</th>
+            <th>Selling Price</th>
+            <th>Supplier</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="products-table-body">
+          <tr>
+            <td colspan="8" class="empty-state">
+              <div class="empty-state-icon">⏳</div>
+              <div>Loading inventory items...</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Stock In Modal -->
+  <div class="modal-backdrop" id="modal-stock-in">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📥 Record Stock In (Restocking / Purchase)</h2>
+        <button class="modal-close" onclick="closeModal('modal-stock-in')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Select Product *</label>
+          <select class="form-control" id="stock-in-product" onchange="updateStockInPreview()">
+            <option value="">Select a product...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Current Stock</label>
+            <input type="text" class="form-control" id="stock-in-current" readonly disabled value="-">
+          </div>
+          <div class="form-group">
+            <label>Quantity to Add *</label>
+            <input type="number" class="form-control" id="stock-in-qty" min="1" placeholder="e.g. 25" oninput="updateStockInPreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Purchase Unit Price (₹)</label>
+            <input type="number" step="0.01" class="form-control" id="stock-in-price" placeholder="Cost price per unit">
+          </div>
+          <div class="form-group">
+            <label>New Resulting Stock</label>
+            <input type="text" class="form-control" id="stock-in-result" readonly disabled value="-">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reference Notes / Supplier Invoice</label>
+          <input type="text" class="form-control" id="stock-in-notes" placeholder="e.g. PO#1005 - Logitech Delivery">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-stock-in')">Cancel</button>
+        <button class="btn btn-success" onclick="submitStockIn()">📥 Confirm Stock In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Stock Out Modal -->
+  <div class="modal-backdrop" id="modal-stock-out">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📤 Record Stock Out (Sale / Dispatch)</h2>
+        <button class="modal-close" onclick="closeModal('modal-stock-out')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Select Product *</label>
+          <select class="form-control" id="stock-out-product" onchange="updateStockOutPreview()">
+            <option value="">Select a product...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Available Stock</label>
+            <input type="text" class="form-control" id="stock-out-current" readonly disabled value="-">
+          </div>
+          <div class="form-group">
+            <label>Quantity to Dispatch *</label>
+            <input type="number" class="form-control" id="stock-out-qty" min="1" placeholder="e.g. 5" oninput="updateStockOutPreview()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Selling Unit Price (₹)</label>
+            <input type="number" step="0.01" class="form-control" id="stock-out-price" placeholder="Sale price">
+          </div>
+          <div class="form-group">
+            <label>Remaining Stock</label>
+            <input type="text" class="form-control" id="stock-out-result" readonly disabled value="-">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Customer Order / Dispatch Reference</label>
+          <input type="text" class="form-control" id="stock-out-notes" placeholder="e.g. Retail Sale - Invoice #INV-802">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-stock-out')">Cancel</button>
+        <button class="btn btn-danger" onclick="submitStockOut()">📤 Confirm Stock Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Stock Adjustment Modal -->
+  <div class="modal-backdrop" id="modal-adjustment">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚖️ Stock Audit Adjustment (Reconciliation)</h2>
+        <button class="modal-close" onclick="closeModal('modal-adjustment')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Select Product *</label>
+          <select class="form-control" id="adjust-product" onchange="updateAdjustPreview()">
+            <option value="">Select a product...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>System Recorded Stock</label>
+            <input type="text" class="form-control" id="adjust-current" readonly disabled value="-">
+          </div>
+          <div class="form-group">
+            <label>Actual Physical Count *</label>
+            <input type="number" class="form-control" id="adjust-count" min="0" placeholder="Count found in warehouse" oninput="updateAdjustPreview()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Adjustment Variance</label>
+          <input type="text" class="form-control" id="adjust-diff" readonly disabled value="0 units">
+        </div>
+        <div class="form-group">
+          <label>Reason / Audit Note *</label>
+          <input type="text" class="form-control" id="adjust-notes" placeholder="e.g. 2 units damaged during water leak">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-adjustment')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAdjustment()">⚖️ Save Adjustment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Add / Edit Product Modal -->
+  <div class="modal-backdrop" id="modal-product">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-product-title">+ Add New Product</h2>
+        <button class="modal-close" onclick="closeModal('modal-product')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="product-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>SKU / Product Code *</label>
+            <input type="text" class="form-control" id="product-sku" placeholder="e.g. ELC-HD-505">
+          </div>
+          <div class="form-group">
+            <label>Unit of Measure *</label>
+            <input type="text" class="form-control" id="product-unit" placeholder="pcs, kg, box, reams" value="pcs">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" class="form-control" id="product-name" placeholder="Full descriptive product title">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea class="form-control" id="product-desc" rows="2" placeholder="Specifications, model details..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" id="product-category">
+              <option value="">Select Category...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Primary Supplier</label>
+            <select class="form-control" id="product-supplier">
+              <option value="">Select Supplier...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Purchase Cost Price (₹) *</label>
+            <input type="number" step="0.01" class="form-control" id="product-cost" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label>Selling Retail Price (₹) *</label>
+            <input type="number" step="0.01" class="form-control" id="product-selling" placeholder="0.00">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" id="group-initial-stock">
+            <label>Initial Opening Stock</label>
+            <input type="number" class="form-control" id="product-initial-stock" min="0" value="0">
+          </div>
+          <div class="form-group">
+            <label>Minimum Stock Alert Level *</label>
+            <input type="number" class="form-control" id="product-min-stock" min="0" value="5">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitProduct()">💾 Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Audit Transaction Ledger Modal -->
+  <div class="modal-backdrop" id="modal-transactions">
+    <div class="modal" style="max-width: 950px;">
+      <div class="modal-header">
+        <h2>📜 Inventory Audit Ledger (History)</h2>
+        <button class="modal-close" onclick="closeModal('modal-transactions')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <select class="select-filter" id="trx-filter-type" onchange="loadTransactions()">
+            <option value="">All Movement Types</option>
+            <option value="STOCK_IN">STOCK_IN (Purchases)</option>
+            <option value="STOCK_OUT">STOCK_OUT (Dispatches)</option>
+            <option value="ADJUSTMENT">ADJUSTMENT (Audits)</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="loadTransactions()">🔄 Refresh Logs</button>
+        </div>
+        <div class="table-wrapper" style="max-height: 450px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Type</th>
+                <th>Product</th>
+                <th>Movement</th>
+                <th>Prev → New Stock</th>
+                <th>Unit Cost</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="transactions-table-body">
+              <!-- Logs populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-transactions')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Categories Modal -->
+  <div class="modal-backdrop" id="modal-categories">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h2>🏷️ Manage Categories</h2>
+        <button class="modal-close" onclick="closeModal('modal-categories')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form onsubmit="submitCategory(event)" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <input type="text" class="form-control" id="new-category-name" placeholder="New Category Name..." required style="flex: 2;">
+          <input type="text" class="form-control" id="new-category-desc" placeholder="Description..." style="flex: 3;">
+          <button type="submit" class="btn btn-primary">+ Add</button>
+        </form>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Linked Products</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="categories-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Suppliers Modal -->
+  <div class="modal-backdrop" id="modal-suppliers">
+    <div class="modal" style="max-width: 750px;">
+      <div class="modal-header">
+        <h2>🏭 Manage Suppliers</h2>
+        <button class="modal-close" onclick="closeModal('modal-suppliers')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form onsubmit="submitSupplier(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+          <input type="text" class="form-control" id="new-supplier-name" placeholder="Company Name *" required>
+          <input type="text" class="form-control" id="new-supplier-contact" placeholder="Contact Person">
+          <input type="text" class="form-control" id="new-supplier-phone" placeholder="Phone Number">
+          <input type="email" class="form-control" id="new-supplier-email" placeholder="Email Address">
+          <input type="text" class="form-control" id="new-supplier-address" placeholder="Physical Address" style="grid-column: span 2;">
+          <button type="submit" class="btn btn-primary" style="grid-column: span 2;">+ Add Supplier</button>
+        </form>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Contact</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="suppliers-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
